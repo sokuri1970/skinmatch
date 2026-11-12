@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K-Rx.ai | Skin Diagnosis &amp; Routine</title>
+<style>
+  /* ===== Reset & Base ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial,
+                 "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    background: linear-gradient(135deg, #eef2ff 0%, #fdf2f8 100%);
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px 12px;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+  /* ===== Virtual Smartphone Frame ===== */
+  .phone {
+    width: 100%;
+    max-width: 420px;
+    height: 850px;
+    background: #ffffff;
+    border-radius: 44px;
+    box-shadow:
+      0 0 0 10px #0f172a,
+      0 0 0 11px #334155,
+      0 30px 70px -10px rgba(79, 70, 229, 0.35),
+      0 18px 36px -18px rgba(15, 23, 42, 0.45);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 26px;
+    background: #0f172a;
+    border-radius: 20px;
+    z-index: 50;
+    pointer-events: none;
+  }
+  .screen-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ===== View Controller (State-based) ===== */
+  .view {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 28px;
+    background: #ffffff;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(24px);
+    transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+  }
+  .view::-webkit-scrollbar { display: none; }
+  .view.is-active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    z-index: 2;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 46px 20px 14px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid #eef2f7;
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, #4f46e5 0%, #ec4899 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    cursor: pointer;
+    user-select: none;
+  }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .lang-bar {
+    display: flex;
+    background: #f1f5f9;
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .lang-btn {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    padding: 6px 9px;
+    border-radius: 999px;
+    transition: all 0.2s ease;
+  }
+  .lang-btn.active {
+    background: #ffffff;
+    color: #4f46e5;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.18);
+  }
+  .user-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e0e7ff, #fce7f3);
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.15);
+    transition: transform 0.2s ease;
+  }
+  .user-btn:hover { transform: scale(1.06); }
+
+  /* ===== Common ===== */
+  .section { padding: 0 20px; }
+
+
+  .back-arrow {
+    width: 38px;
+    height: 38px;
+    margin-top: 18px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    transition: background 0.2s ease;
+  }
+  .back-arrow:hover { background: #e0e7ff; }
+
+
+  /* ===== Screen 1: Home ===== */
+  .home-hero { padding: 36px 20px 0; text-align: left; }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4338ca;
+    background: #ede9fe;
+    padding: 7px 12px;
+    border-radius: 999px;
+    letter-spacing: -0.1px;
+  }
+  .headline {
+    margin-top: 18px;
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1.16;
+    letter-spacing: -1px;
+    color: #0f172a;
+    white-space: pre-line;
+  }
+  .headline .accent {
+    color: #4f46e5;
+  }
+  .subcopy {
+    margin-top: 14px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #475569;
+    word-break: keep-all;
+  }
+  .scan-card {
+    margin-top: 28px;
+    width: 100%;
+    padding: 30px 20px;
+    border-radius: 24px;
+    border: 2px dashed #a5b4fc;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f5f3ff 55%, #fdf2f8 100%);
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    box-shadow: 0 14px 30px -20px rgba(79, 70, 229, 0.45);
+  }
+  .scan-card:hover {
+    transform: translateY(-2px);
+    border-color: #ec4899;
+    box-shadow: 0 18px 34px -18px rgba(236, 72, 153, 0.4);
+  }
+  .scan-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: #ffffff;
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    box-shadow: 0 10px 22px -10px rgba(79, 70, 229, 0.45);
+  }
+  .scan-title {
+    margin-top: 16px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .scan-desc {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.5;
+  }
+  .scan-cta {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #ffffff;
+    background: linear-gradient(90deg, #4f46e5, #ec4899);
+    padding: 10px 18px;
+    border-radius: 999px;
+  }
+  .partners {
+    margin-top: 36px;
+    padding: 20px 0 10px;
+    border-top: 1px solid #eef2f7;
+    text-align: center;
+  }
+  .partners-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+  .partners-list {
+    margin-top: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #334155;
+    letter-spacing: -0.2px;
+  }
+  .partners-list .sep { color: #cbd5e1; margin: 0 6px; font-weight: 400; }
+
+  /* ===== Screen 2: Report ===== */
+  .report-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-top: 24px;
+    gap: 12px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: #ec4899;
+    margin-bottom: 6px;
+  }
+  .report-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    line-height: 1.15;
+  }
+  .report-sub {
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .score-box {
+    min-width: 116px;
+    padding: 14px 16px 12px;
+    border-radius: 18px;
+    background: linear-gradient(145deg, #4f46e5 0%, #4338ca 100%);
+    color: #ffffff;
+    text-align: center;
+    box-shadow: 0 14px 28px -10px rgba(79, 70, 229, 0.6);
+  }
+  .score-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    opacity: 0.85;
+    text-transform: uppercase;
+  }
+  .score-value {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-top: 2px;
+  }
+  .score-value small {
+    font-size: 15px;
+    font-weight: 600;
+    opacity: 0.8;
+    letter-spacing: 0;
+  }
+  .card {
+    margin-top: 22px;
+    padding: 20px;
+    border-radius: 22px;
+    background: #ffffff;
+    border: 1px solid #eef2f7;
+    box-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.25);
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 16px;
+    color: #1e293b;
+  }
+  .metric { margin-bottom: 18px; }
+  .metric:last-child { margin-bottom: 0; }
+  .metric-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .metric-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+  }
+  .metric-name span {
+    display: block;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+  .metric-pct { font-size: 15px; font-weight: 800; }
+  .track {
+    width: 100%;
+    height: 10px;
+    background: #f1f5f9;
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  .fill {
+    height: 100%;
+    border-radius: 999px;
+    width: 0;
+    position: relative;
+    transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .fill::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0));
+  }
+  .fill.red   { background: linear-gradient(90deg, #f87171, #dc2626); }
+  .fill.blue  { background: linear-gradient(90deg, #60a5fa, #2563eb); }
+  .fill.green { background: linear-gradient(90deg, #4ade80, #16a34a); }
+  .pct-red   { color: #dc2626; }
+  .pct-blue  { color: #2563eb; }
+  .pct-green { color: #16a34a; }
+
+  .advisor {
+    margin-top: 22px;
+    padding: 18px 18px 18px 20px;
+    border-radius: 18px;
+    background: #f5f3ff;
+    border-left: 6px solid #4f46e5;
+    box-shadow: 0 8px 22px -14px rgba(79, 70, 229, 0.5);
+  }
+  .advisor-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #4338ca;
+    margin-bottom: 8px;
+  }
+  .advisor-text {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: #334155;
+    word-break: keep-all;
+  }
+  .advisor-text strong { color: #4338ca; font-weight: 700; }
+
+  .sub-title {
+    margin-top: 28px;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sub-title .tag {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ec4899;
+    background: #fdf2f8;
+    padding: 4px 8px;
+    border-radius: 999px;
+  }
+  .product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .product-card {
+    display: flex;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 20px;
+    background: #ffffff;
+    border: 1px solid #eef2f7;
+    box-shadow: 0 12px 26px -18px rgba(15, 23, 42, 0.3);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 30px -16px rgba(236, 72, 153, 0.35);
+  }
+  .product-img {
+    flex: 0 0 110px;
+    height: 110px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    font-size: 54px;
+    position: relative;
+  }
+  .product-img.calm {
+    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #ecfdf5 45%, #d1fae5 100%);
+  }
+  .product-img.repair {
+    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #f0fdf4 45%, #bbf7d0 100%);
+  }
+  .step-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #ffffff;
+    background: #0f172a;
+    padding: 3px 7px;
+    border-radius: 999px;
+  }
+  .product-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+  .step-name {
+    font-size: 12px;
+    font-weight: 800;
+    color: #ec4899;
+    margin-bottom: 4px;
+  }
+  .product-name {
+    font-size: 14.5px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #0f172a;
+    word-break: keep-all;
+  }
+  .product-price {
+    margin-top: 8px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #4f46e5;
+  }
+
+  .checkout { padding: 0 20px; margin-top: 26px; }
+  .buy-btn {
+    width: 100%;
+    padding: 19px 20px;
+    border-radius: 999px;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    box-shadow:
+      0 16px 30px -12px rgba(15, 23, 42, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.15s ease, box-shadow 0.25s ease, background 0.25s ease;
+  }
+  .buy-btn:hover {
+    background: #1e293b;
+    box-shadow: 0 20px 36px -14px rgba(236, 72, 153, 0.45);
+  }
+  .buy-btn:active { transform: scale(0.98); }
+  .shipping-tip {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #64748b;
+  }
+  .back-link {
+    display: block;
+    margin: 18px auto 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4f46e5;
+    text-decoration: underline;
+  }
+
+  /* ===== Loading Popup ===== */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+  }
+  .loading-overlay.is-open { opacity: 1; visibility: visible; }
+  .loading-box {
+    width: 78%;
+    padding: 28px 22px;
+    border-radius: 22px;
+    background: #ffffff;
+    text-align: center;
+    box-shadow: 0 24px 50px -16px rgba(15, 23, 42, 0.5);
+  }
+  .loading-emoji {
+    font-size: 34px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .loading-text {
+    margin-top: 12px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.5;
+  }
+  .progress {
+    margin-top: 16px;
+    height: 6px;
+    border-radius: 999px;
+    background: #eef2ff;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4f46e5, #ec4899);
+    transition: width 3s linear;
+  }
+  .progress-bar.run { width: 100%; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.12); }
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    margin-top: 30px;
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid #eef2f7;
+  }
+  .footer p { font-size: 11px; color: #94a3b8; line-height: 1.6; }
+  .footer .brand-mini { font-weight: 800; color: #4f46e5; margin-bottom: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <!-- Header (common) -->
+  <header class="header">
+    <div class="logo" id="logoHome" role="button" aria-label="Go to home">K-Rx.ai</div>
+    <div class="header-right">
+      <div class="lang-bar" role="group" aria-label="Language">
+        <button class="lang-btn active" data-lang="EN">EN</button>
+        <button class="lang-btn" data-lang="ES">ES</button>
+        <button class="lang-btn" data-lang="JA">JA</button>
+      </div>
+      <button class="user-btn" aria-label="User profile">👤</button>
+    </div>
+  </header>
+
+  <div class="screen-wrap" id="screenWrap">
+
+    <!-- ========== SCREEN 1: HOME ========== -->
+    <section class="view is-active" id="view-home" data-view="home">
+      <div class="home-hero">
+        <span class="badge">⚡ 1-Second AI Dermatologist</span>
+        <h1 class="headline">Find Your Perfect
+<span class="accent">K-Beauty Routine</span></h1>
+        <p class="subcopy">AI가 당신의 피부 트러블을 실시간 분석하여 가장 핫한 한국 화장품으로 맞춤 처방전을 발행합니다.</p>
+
+        <!-- Camera / file trigger card -->
+        <div class="scan-card" id="scanCard" role="button" tabindex="0" aria-label="Take a skin photo">
+          <div class="scan-icon">📸</div>
+          <div class="scan-title">Start AI Skin Scan</div>
+          <div class="scan-desc">전면 카메라로 피부를 촬영하거나<br>사진을 선택해 주세요</div>
+          <span class="scan-cta">Take Photo</span>
+        </div>
+        <input type="file" accept="image/*" capture="user" id="skin-picker" style="display:none;">
+      </div>
+
+      <div class="partners">
+        <div class="partners-title">Powered by Top K-Brands</div>
+        <div class="partners-list">
+          조선미녀<span class="sep">|</span>Anua<span class="sep">|</span>SKIN1004
+        </div>
+      </div>
+      <div class="footer">
+        <p class="brand-mini">K-Rx.ai</p>
+        <p>© 2026 K-Rx.ai. All rights reserved.<br>Powered by AI Skin Intelligence · Silicon2 Global Distribution</p>
+      </div>
+    </section>
+
+    <!-- ========== SCREEN 2: REPORT ========== -->
+    <section class="view" id="view-report" data-view="report">
+      <div class="section">
+
+<button class="back-arrow" id="backBtn" aria-label="처음 화면으로">←</button>
+
+
+        <div class="report-head">
+          <div>
+            <div class="eyebrow">AI Diagnosis Report</div>
+            <h2 class="report-title">Skin Analysis</h2>
+            <div class="report-sub">Your Custom Solution</div>
+          </div>
+          <div class="score-box">
+            <div class="score-label">Total Score</div>
+            <div class="score-value"><span id="totalScore">68</span> <small>/ 100</small></div>
+          </div>
+        </div>
+
+        <!-- Skin metrics (data-driven; swap METRICS for API response) -->
+        <div class="card">
+          <div class="card-title">📊 Skin Metrics</div>
+          <div id="metricsList"></div>
+        </div>
+
+        <!-- AI Rx Advisor -->
+        <div class="advisor">
+          <div class="advisor-title">🤖 AI Rx Advisor</div>
+          <p class="advisor-text">
+            현재 피부 장벽이 약해져 외부 자극으로 인한 홍조율이 심각하게 높습니다.
+            진정 효과가 탁월한 <strong>'어성초(Heartleaf)' 토너</strong>와
+            장벽을 재생하는 <strong>'센텔라(Centella)' 세럼 루틴</strong>이 시급합니다.
+          </p>
+        </div>
+
+        <!-- Recommended routine -->
+        <div class="sub-title">
+          Recommended AI Routine
+          <span class="tag">Silicon2 Partner</span>
+        </div>
+        <div class="product-list" id="productList"></div>
+      </div>
+
+      <!-- Checkout -->
+      <section class="checkout">
+        <button class="buy-btn" id="buyBtn">💳 Buy Total Routine ($40.00)</button>
+        <p class="shipping-tip">✈️ Free Shipping via Silicon2 Global Fulfillment Network</p>
+        <button class="back-link" id="retakeBtn">← 다시 촬영하기</button>
+      </section>
+
+      <div class="footer">
+        <p class="brand-mini">K-Rx.ai</p>
+        <p>© 2026 K-Rx.ai. All rights reserved.<br>Powered by AI Skin Intelligence · Silicon2 Global Distribution</p>
+      </div>
+    </section>
+
+    <!-- Loading popup -->
+    <div class="loading-overlay" id="loadingOverlay" aria-live="polite">
+      <div class="loading-box">
+        <div class="loading-emoji">📸</div>
+        <div class="loading-text">AI가 당신의 피부 데이터를<br>정밀 분석 중입니다...</div>
+        <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ===================== DATA (swap with API response later) ===================== */
+  const SKIN_DATA = {
+    totalScore: 68,
+    metrics: [
+      { key: "redness",   name: "Redness / Sensitivity", ko: "홍조·민감성", value: 82, color: "red"   },
+      { key: "hydration", name: "Hydration Deficit",     ko: "수분 부족도", value: 50, color: "blue"  },
+      { key: "pigment",   name: "Pigmentation",          ko: "색소 침착",   value: 30, color: "green" }
+    ]
+  };
+
+  const PRODUCTS = [
+    { id: "anua-toner",  icon: "🌿", cls: "calm",   step: "Step 1. Calming",       name: "Anua 어성초 77% 수딩 토너", price: 18.00 },
+    { id: "skin1004-amp", icon: "🍀", cls: "repair", step: "Step 2. Barrier Repair", name: "스킨1004 센텔라 아시아티카 앰플", price: 22.00 }
+  ];
+
+  /* ===================== VIEW CONTROLLER ===================== */
+  const Views = {
+    current: "home",
+    show(name) {
+      if (this.current === name) return;
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("is-active"));
+      const target = document.getElementById("view-" + name);
+      if (!target) return;
+      target.scrollTop = 0;
+      target.classList.add("is-active");
+      this.current = name;
+    }
+  };
+
+  /* ===================== RENDERING ===================== */
+  function renderMetrics() {
+    const wrap = document.getElementById("metricsList");
+    wrap.innerHTML = SKIN_DATA.metrics.map(m => `
+      <div class="metric">
+        <div class="metric-head">
+          <div class="metric-name">${m.name}<span>${m.ko}</span></div>
+          <div class="metric-pct pct-${m.color}">${m.value}%</div>
+        </div>
+        <div class="track">
+          <div class="fill ${m.color}" data-width="${m.value}"></div>
+        </div>
+      </div>`).join("");
+  }
+
+  function renderProducts() {
+    const wrap = document.getElementById("productList");
+    const total = PRODUCTS.reduce((s, p) => s + p.price, 0);
+    wrap.innerHTML = PRODUCTS.map(p => `
+      <article class="product-card">
+        <div class="product-img ${p.cls}">
+          <span class="step-badge">STEP ${p.step.split(" ")[1].replace(".", "")}</span>
+          ${p.icon}
+        </div>
+        <div class="product-info">
+          <div class="step-name">${p.step}</div>
+          <div class="product-name">${p.name}</div>
+          <div class="product-price">$${p.price.toFixed(2)}</div>
+        </div>
+      </article>`).join("");
+    document.querySelector(".buy-btn").textContent =
+      `💳 Buy Total Routine ($${total.toFixed(2)})`;
+  }
+
+  function renderReport() {
+    document.getElementById("totalScore").textContent = SKIN_DATA.totalScore;
+    renderMetrics();
+    renderProducts();
+    // Animate bars after paint
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.querySelectorAll(".fill").forEach(f => {
+          f.style.width = f.dataset.width + "%";
+        });
+      });
+    });
+  }
+
+  /* ===================== CAMERA / FILE INPUT ===================== */
+  const scanCard   = document.getElementById("scanCard");
+  const skinPicker = document.getElementById("skin-picker");
+  const overlay    = document.getElementById("loadingOverlay");
+  const progressBar = document.getElementById("progressBar");
+  let loadingTimer = null;
+
+  scanCard.addEventListener("click", () => skinPicker.click());
+  scanCard.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); skinPicker.click(); }
+  });
+
+  skinPicker.addEventListener("change", e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    // TODO: Connect Skin Analysis AI API Here
+    // Example: upload `file` as FormData to your analysis endpoint, then
+    //   const result = await response.json();
+    //   SKIN_DATA.totalScore = result.totalScore;
+    //   SKIN_DATA.metrics = result.metrics;
+    // and call renderReport() once the response arrives.
+    // The 3s popup below should be awaited together with this request.
+
+    startLoading(() => {
+      renderReport();
+      Views.show("report");
+    });
+    skinPicker.value = "";
+  });
+
+  function startLoading(onDone) {
+    clearTimeout(loadingTimer);
+    overlay.classList.add("is-open");
+    progressBar.classList.remove("run");
+    void progressBar.offsetWidth; // restart CSS transition
+    progressBar.classList.add("run");
+
+    loadingTimer = setTimeout(() => {
+      overlay.classList.remove("is-open");
+      onDone && onDone();
+    }, 3000);
+  }
+
+  /* ===================== NAVIGATION ===================== */
+
+document.getElementById("backBtn").addEventListener("click", () => {
+  Views.show("home");
+});
+
+
+  document.getElementById("logoHome").addEventListener("click", () => {
+    clearTimeout(loadingTimer);
+    overlay.classList.remove("is-open");
+    Views.show("home");
+  });
+
+  document.getElementById("retakeBtn").addEventListener("click", () => {
+    Views.show("home");
+  });
+
+  /* ===================== LANGUAGE (UI state only) ===================== */
+  document.querySelectorAll(".lang-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  /* ===================== CHECKOUT ===================== */
+  document.getElementById("buyBtn").addEventListener("click", () => {
+    // TODO: Connect Silicon2 Fulfillment Order API Here
+    // Example: await fetch("https://<your-endpoint>/orders", { method: "POST",
+    //   headers: {"Content-Type": "application/json"},
+    //   body: JSON.stringify({ items: PRODUCTS.map(p => p.id), skin: SKIN_DATA }) });
+    alert("🛍️ [글로벌 주문 자동화] 결제가 완료되었습니다. 주문자 데이터가 실리콘투 풀필먼트 API망으로 즉시 전송됩니다.");
+  });
+
+  /* ===================== INIT ===================== */
+  renderReport(); // pre-render so report is ready when shown
+</script>
+
+</body>
+</html>
