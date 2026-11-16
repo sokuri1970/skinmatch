@@ -93,10 +93,14 @@
     </style>
     
 <script>
-    const paypalClientId = "BAABCWQEme-XldkNENRRMz2-TL2TT_ZvbPXtRoLpGX5tLsCZOOCZesVbuFcG1Jtk0xIhl_dyakirUysWDk";
-    const sdkScript = document.createElement('script');
-    sdkScript.src = "https://www." + "://paypal.com" + paypalClientId + "&currency=USD&intent=capture";
-    document.head.appendChild(sdkScript);        
+    (function() {
+            var pDomain = "paypal" + ".com";
+            var pClientId = "BAABCWQEme-XldkNENRRMz2-TL2TT_ZvbPXtRoLpGX5tLsCZOOCZesVbuFcG1Jtk0xIhl_dyakirUysWDk";
+            var s = document.createElement('script');
+            s.src = "https://www." + pDomain + "/sdk/js?client-id=" + pClientId + "&currency=USD&intent=capture";
+            s.async = true;
+            document.head.appendChild(s);
+        })();      
 </script>
 
     
