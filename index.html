@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -127,9 +127,9 @@
             <div class="option-box">
                 <span class="option-label">1. Who is this scan for? (진단 대상)</span>
                 <div class="pill-group" id="target-group">
-                    <div class="pill-btn active" onclick="selectPill('target', 'For Me', this)">For Me (본인)</div>
-                    <div class="pill-btn" onclick="selectPill('target', 'For Family', this)">For Family (가족)</div>
-                    <div class="pill-btn" onclick="selectPill('target', 'For Friend', this)">For Friend (친구)</div>
+                    <div class="pill-btn active" onclick="selectPill('target', 'For Me', this)">For Me</div>
+                    <div class="pill-btn" onclick="selectPill('target', 'For Family', this)">For Family</div>
+                    <div class="pill-btn" onclick="selectPill('target', 'For Friend', this)">For Friend</div>
                 </div>
                 <span class="option-label">2. Select Skin Tone & Gender (피부톤 및 성별)</span>
                 <div class="tone-group">
@@ -166,8 +166,8 @@
             <button type="button" class="btn-quiz" onclick="openQuizModal()">📝 카메라가 어렵다면? 30초 간단 설문으로 진단받기</button>
 
             <div class="partners">
-                <p class="partner-title">Global Fulfillment by Silicon2</p>
-                <div class="partner-list"><span>조선미녀</span><span>|</span><span>Anua</span><span>|</span><span>SKIN1004</span></div>
+                <p class="partner-title">Official K-Beauty Brands • Direct Global Shipping</p>
+                <div class="partner-list"><span>조선미녀</span><span>|</span><span>아누아</span><span>|</span><span>스1004</span></div>
             </div>
         </div>
         <div id="view-report" class="page-view">
@@ -200,8 +200,8 @@
             </div>
 
             <div class="tools-grid">
-                <button type="button" class="btn-tool" onclick="savePrescriptionImage()">📥 내 처방전 저장</button>
-                <button type="button" class="btn-tool highlight" onclick="generateBeforeAfter()">📸 Before/After 합성</button>
+                <button type="button" class="btn-tool" onclick="savePrescriptionImage()">📥 Save AI Skin Report</button>
+                <button type="button" class="btn-tool highlight" onclick="generateBeforeAfter()">📸 Before / After Photos</button>
             </div>
 
             <div class="section-title">Primary Prescription (핵심 단품 처방)</div>
@@ -269,7 +269,7 @@
             </div>
         </div>
         <footer>
-            <p class="disclaimer">⚠ Disclaimer: Skintic provides cosmetic recommendations only and is not a medical device.</p>
+            <p class="disclaimer">⚠ Disclaimer: Skintic provides cosmetic recommendations only and is not a medical institution.</p>
             <div class="legal-links">
                 <span onclick="showLegal('Terms of Service')">Terms of Service</span> |
                 <span onclick="showLegal('Privacy Policy (No Server Photo Storage)')">Privacy Policy</span> |
@@ -556,23 +556,33 @@
         // PayPal 실제 결제창 렌더링 (3단계 진입 시 자동 실행)
         function renderPayPalButton() {
             const container = document.getElementById('paypal-button-container');
-            container.innerHTML = '';
-            if (typeof paypal !== 'undefined') {
-                paypal.Buttons({
-                    createOrder: function(data, actions) {
-                        return actions.order.create({
-                            purchase_units: [{ amount: { value: totalPrice.toFixed(2) } }]
-                        });
-                    },
-                    onApprove: function(data, actions) {
-                        return actions.order.capture().then(function(details) {
-                            alert('✅ PayPal 결제가 승인되었습니다! 결제자: ' + details.payer.name.given_name);
-                            completePayment();
-                        });
-                    }
-                }).render('#paypal-button-container');
-            }
+            container.innerHTML = '<p style="font-size:12px; color:#64748b;">Loading PayPal Secure Checkout...</p>';
+            let attempts = 0;
+            const checkPaypal = setInterval(() => {
+                attempts++;
+                if (typeof paypal !== 'undefined') {
+                    clearInterval(checkPaypal);
+                    container.innerHTML = '';
+                    paypal.Buttons({
+                        createOrder: function(data, actions) {
+                            return actions.order.create({
+                                purchase_units: [{ amount: { value: totalPrice.toFixed(2) } }]
+                            });
+                        },
+                        onApprove: function(data, actions) {
+                            return actions.order.capture().then(function(details) {
+                                alert('Payment Approved! Thank you, ' + details.payer.name.given_name);
+                                completePayment();
+                            });
+                        }
+                    }).render('#paypal-button-container');
+                } else if (attempts > 20) {
+                    clearInterval(checkPaypal);
+                    container.innerHTML = '<p style="font-size:12px; color:#ef4444;">PayPal SDK failed to load. Please check Client ID.</p>';
+                }
+            }, 300);
         }
+
 
 
         
