@@ -91,6 +91,15 @@
         .disclaimer { color: #94a3b8; margin-bottom: 8px; line-height: 1.4; }
         .legal-links span { cursor: pointer; text-decoration: underline; margin: 0 4px; }
     </style>
+    
+<script>
+        const paypalClientId = "BAABCWQEme-XldkNENRRMz2-TL2TT_ZvbPXtRoLpGX5tLsCZOOCZesVbuFcG1Jtk0xIhl_dyakirUysWDk";
+        const sdkScript = document.createElement('script');
+        sdkScript.src = "https://www." + "://paypal.com" + paypalClientId + "&currency=USD";
+        document.head.appendChild(sdkScript);
+ </script>
+
+    
 </head>
 <body>
     <div class="phone-container">
@@ -103,7 +112,7 @@
                 <select class="lang-select" onchange="changeLang(this.value)">
                     <option value="EN">EN</option><option value="ES">ES</option><option value="JA">JA</option>
                 </select>
-                <button class="btn-history" onclick="openHistory()">📦 My Rx</button>
+                <button class="btn-history" onclick="openHistory()">📦 My Skin Plan</button>
             </div>
         </header>
 
@@ -142,13 +151,17 @@
                 </div>
             </div>
 
-            <div class="scan-card" onclick="triggerCamera()">
+            <div class="scan-card" style="cursor:default;">
                 <div class="camera-box">📸</div>
-                <div class="card-title">Tap to Scan Your Skin</div>
-                <div class="card-sub">카메라 촬영 또는 갤러리에서 얼굴 사진을 선택하세요</div>
-                <button type="button" class="btn-scan">Start AI Scan →</button>
+                <div class="card-title">1-Second AI Skin Scan</div>
+                <div class="card-sub">카메라로 직접 촬영하거나 갤러리에서 사진을 선택하세요</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;">
+                    <button type="button" class="btn-scan" style="background:#334155; padding:11px 8px;" onclick="triggerDirectCamera()">📷 카메라 촬영</button>
+                    <button type="button" class="btn-scan" style="padding:11px 8px;" onclick="triggerGallery()">🖼️ 갤러리 선택</button>
+                </div>
                 <div class="scan-limit-text" id="limit-indicator">오늘 무료 스캔 잔여 횟수: 3 / 3회</div>
             </div>
+
 
             <button type="button" class="btn-quiz" onclick="openQuizModal()">📝 카메라가 어렵다면? 30초 간단 설문으로 진단받기</button>
 
@@ -234,9 +247,11 @@
                 <div class="summary-total"><span>Total Amount</span><span id="summary-total-price">$22.00</span></div>
             </div>
 
-            <button type="button" class="btn-paypal" onclick="completePayment()">PayPal / Credit Card 결제 ($22.00)</button>
+             <div id="paypal-button-container" style="margin-top:12px;"></div>
+            <button type="button" class="btn-retake" style="margin-top:8px;" onclick="completePayment()">🧪 (테스트용) 결제 완료 화면 미리보기</button>
         </div>
-
+        
+               
         <div id="view-complete" class="page-view">
             <div class="confirm-box">
                 <div class="confirm-icon">✅</div>
@@ -260,7 +275,7 @@
                 <span onclick="showLegal('Privacy Policy (No Server Photo Storage)')">Privacy Policy</span> |
                 <span onclick="showLegal('Refund & Shipping Policy')">Refund Policy</span>
             </div>
-            <p style="margin-top:6px;">© 2026 Skintic (AI SkinMatch Inc.) - skinmatch.kr</p>
+            <p style="margin-top:6px;">© 2026 Skintic (AI SkinMatch) - skinmatch.kr</p>
         </footer>
     </div>
 
@@ -382,12 +397,7 @@
             } catch(e) {}
         }
 
-        function triggerCamera() {
-            if (!checkScanLimit()) return;
-            const input = document.getElementById('camera-input');
-            input.value = '';
-            input.click();
-        }
+        
 
         function handlePhotoSelected(event) {
             if (event.target.files && event.target.files.length > 0) {
@@ -485,8 +495,9 @@
             document.getElementById('summary-item-name').innerText = isUpsell ? "SKIN1004 Ampoule + Anua Toner Set" : document.getElementById('main-product-name').innerText;
             document.getElementById('summary-item-price').innerText = `$${totalPrice.toFixed(2)}`;
             document.getElementById('summary-total-price').innerText = `$${totalPrice.toFixed(2)}`;
-            document.querySelector('.btn-paypal').innerText = `PayPal / Credit Card 결제 ($${totalPrice.toFixed(2)})`;
+           
             switchView('checkout');
+            renderPayPalButton();
         }
 
         function completePayment() {
@@ -527,6 +538,44 @@
         function closeModals() { document.querySelectorAll('.overlay-modal').forEach(m => m.style.display = 'none'); }
         function showLegal(title) { alert(`📜 [${title}]\n\nSkintic (AI SkinMatch) complies with global privacy & e-commerce regulations. Facial photos are processed locally and never stored permanently on external servers.`); }
         function changeLang(lang) { alert(`🌐 언어가 [${lang}] 모드로 전환되었습니다.`); }
+
+
+        // [좌측 버튼] 카메라 촬영 (AILabTools API 미연결 시 안내 메시지 출력)
+        function triggerDirectCamera() {
+            alert("⚠️ AILabTools Camera API가 아직 연결되지 않았습니다.\n\n현재 테스트 모드에서는 오른쪽 [🖼️ 갤러리 선택] 버튼을 눌러 스마트폰 앨범의 사진을 선택해 주세요!");
+        }
+
+        // [우측 버튼] 갤러리 사진 선택
+        function triggerGallery() {
+            if (!checkScanLimit()) return;
+            const input = document.getElementById('camera-input');
+            input.value = '';
+            input.click();
+        }
+
+        // PayPal 실제 결제창 렌더링 (3단계 진입 시 자동 실행)
+        function renderPayPalButton() {
+            const container = document.getElementById('paypal-button-container');
+            container.innerHTML = '';
+            if (typeof paypal !== 'undefined') {
+                paypal.Buttons({
+                    createOrder: function(data, actions) {
+                        return actions.order.create({
+                            purchase_units: [{ amount: { value: totalPrice.toFixed(2) } }]
+                        });
+                    },
+                    onApprove: function(data, actions) {
+                        return actions.order.capture().then(function(details) {
+                            alert('✅ PayPal 결제가 승인되었습니다! 결제자: ' + details.payer.name.given_name);
+                            completePayment();
+                        });
+                    }
+                }).render('#paypal-button-container');
+            }
+        }
+
+
+        
     </script>
 </body>
 </html>
