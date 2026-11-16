@@ -175,6 +175,9 @@
             </div>
         </div>
         <div id="view-report" class="page-view">
+
+<div id="email-status-banner" style="padding:10px 12px; border-radius:10px; font-size:11.5px; font-weight:700; margin-bottom:14px; text-align:center; cursor:pointer;"></div>
+            
             <div class="report-header">
                 <div>
                     <div class="report-title">Skin Analysis Report</div>
@@ -293,11 +296,12 @@
 
     <div id="modal-email" class="overlay-modal">
         <div class="modal-card">
-            <span class="badge">✨ 분석 완료</span>
-            <h3 style="font-size:18px; font-weight:800; margin-bottom:8px;">맞춤 K-뷰티 처방전이 완성되었습니다!</h3>
-            <p style="font-size:12.5px; color:#64748b; margin-bottom:16px;">이메일 주소를 입력하시면 처방 리포트가 자동 저장되며 <strong>$5 할인 혜택</strong>이 적용됩니다.</p>
-            <input type="email" id="gate-email-input" placeholder="이메일 주소 입력 (예: user@gmail.com)" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:10px; margin-bottom:12px; font-size:14px;">
-            <button type="button" class="btn-primary" onclick="unlockReport()">결과 리포트 확인하기 →</button>
+            <span class="badge">✨ Analysis Complete</span>
+            <h3 style="font-size:18px; font-weight:800; margin-bottom:8px;">Your AI Skin Report is Ready!</h3>
+            <p style="font-size:12.5px; color:#64748b; margin-bottom:16px;">Save this report permanently & send a copy to your email.</p>
+            <input type="email" id="gate-email-input" placeholder="Enter your email (e.g. name@gmail.com)" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:10px; margin-bottom:10px; font-size:14px;">
+            <button type="button" class="btn-primary" onclick="unlockReport(true)">Save & Send Report to Email →</button>
+            <button type="button" class="btn-retake" onclick="unlockReport(false)">No Email? Skip & View on Phone</button>
         </div>
     </div>
 
@@ -426,18 +430,26 @@
             }, 2200);
         }
 
-        function unlockReport() {
-            const emailInput = document.getElementById('gate-email-input').value.trim();
-            if (!emailInput || !emailInput.includes('@')) {
-                alert("정확한 이메일 주소를 입력해주세요.");
-                return;
+                function unlockReport(withEmail) {
+            if (withEmail) {
+                const emailInput = document.getElementById('gate-email-input').value.trim();
+                if (!emailInput || !emailInput.includes('@')) {
+                    alert("Please enter a valid email address.");
+                    return;
+                }
+                userEmail = emailInput;
+                try { localStorage.setItem('skintic_email', userEmail); } catch(e) {}
             }
-            userEmail = emailInput;
-            try { localStorage.setItem('skintic_email', userEmail); } catch(e) {}
             closeModals();
             renderReport();
         }
 
+        function openEmailModalLater() {
+            document.getElementById('modal-email').style.display = 'flex';
+        }
+
+
+        
         function renderReport() {
             document.getElementById('report-target-badge').innerText = `${selectedTarget} • Glass Skin Potential`;
             let prodName = "SKIN1004 센텔라 앰플 (100ml)";
@@ -454,6 +466,22 @@
             document.getElementById('ai-advice-text').innerHTML = `<strong>🤖 Skintic AI Advisor:</strong><br>${advice}`;
 
             saveRecordToHistory(prodName);
+
+            const banner = document.getElementById('email-status-banner');
+            if (userEmail) {
+                banner.style.background = '#ecfdf5';
+                banner.style.border = '1px solid #a7f3d0';
+                banner.style.color = '#065f46';
+                banner.onclick = null;
+                banner.innerText = `✅ [${selectedTarget}] Report saved & sent to ${userEmail}`;
+            } else {
+                banner.style.background = '#fffbeb';
+                banner.style.border = '1px solid #fde68a';
+                banner.style.color = '#92400e';
+                banner.onclick = openEmailModalLater;
+                banner.innerHTML = `📧 Want to save & email this report? <u style="margin-left:4px;">Add Email Anytime →</u>`;
+            }
+                     
             switchView('report');
             setTimeout(() => {
                 document.getElementById('bar-red').style.width = '82%';
