@@ -1,47 +1,32 @@
-const AILAB_URL = "https://www.ailabapi.com/api/portrait/analysis/skin-analysis";
-
 export default async function handler(req, res) {
-  if (req.method === "GET") {
-    return res.status(200).json({ hasKey: !!process.env.AILAB_API_KEY });
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error_msg: "POST only" });
-  }
-
-  const key = process.env.AILAB_API_KEY;
-  if (!key) {
-    return res.status(500).json({ error_msg: "서버에 API 키가 설정되지 않았습니다." });
-  }
-
-  try {
-    const { image } = req.body || {};
-    if (!image) {
-      return res.status(400).json({ error_msg: "사진 데이터가 없습니다." });
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    const base64 = image.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64, "base64");
-
-    const form = new FormData();
-    const fieldName = process.env.AILAB_FIELD || "image";
-    form.append(fieldName, new Blob([buffer], { type: "image/jpeg" }), "skin.jpg");
-
-    const upstream = await fetch(AILAB_URL, {
-      method: "POST",
-      headers: { "ailabapi-api-key": key },
-      body: form
-    });
-
-    const text = await upstream.text();
-    let data;
     try {
-      data = JSON.parse(text);
-    } catch {
-      data = { error_msg: "AILabTools 응답 해석 실패: " + text.slice(0, 200) };
+        const { imageBase64 } = req.body;
+        if (!imageBase64) {
+            return res.status(400).json({ error: 'No image provided' });
+        }
+
+        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        const formData = new FormData();
+        const blob = new Blob([buffer], { type: 'image/jpeg' });
+        formData.append('image', blob, 'face.jpg');
+
+        const apiResponse = await fetch('https://ailabapi.com', {
+            method: 'POST',
+            headers: {
+                'ailabapi-api-key': 'Gd9dFuZABqfXR97R5575Nx99Nex5a8l4bYmsaIy8JlrIUaW1y7j6CGrMJQhfNzZx'
+            },
+            body: formData
+        });
+
+        const data = await apiResponse.json();
+        return res.status(200).json(data);
+    } catch (error) {
+        return res.status(500).json({ error: 'AI Analysis Server Error', details: error.message });
     }
-    return res.status(upstream.status).json(data);
-  } catch (err) {
-    return res.status(502).json({ error_msg: "서버 오류: " + err.message });
-  }
 }
