@@ -509,12 +509,22 @@
                     let dryVal = r.skin_type?.skin_type === 0 ? 78 : 52;
                     let calcScore = Math.max(52, Math.min(92, Math.round(100 - (redVal + poreVal + dryVal) / 4.5)));
 
-                    aiResultMetrics = {
+                   aiResultMetrics = {
                         score: calcScore,
                         red: redVal,
                         blue: dryVal,
                         green: poreVal,
-                        primaryConcern: (redVal >= dryVal && redVal >= poreVal) ? 'Redness' : (dryVal >= poreVal ? 'Hydration' : 'Pores')
+                        primaryConcern: (redVal >= dryVal && redVal >= poreVal) ? 'Redness' : (dryVal >= poreVal ? 'Hydration' : 'Pores'),
+                        isRealAi: true,
+                        errorMsg: ''
+                    };
+                    } else {
+                    aiResultMetrics.isRealAi = false;
+                    aiResultMetrics.errorMsg = json.error_msg || json.error || 'No face detected';
+                }
+
+
+                        
                     };
                 }
             } catch (err) {
