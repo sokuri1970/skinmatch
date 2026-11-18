@@ -509,7 +509,7 @@
                     let dryVal = r.skin_type?.skin_type === 0 ? 78 : 52;
                     let calcScore = Math.max(52, Math.min(92, Math.round(100 - (redVal + poreVal + dryVal) / 4.5)));
 
-                   aiResultMetrics = {
+                    aiResultMetrics = {
                         score: calcScore,
                         red: redVal,
                         blue: dryVal,
@@ -518,14 +518,9 @@
                         isRealAi: true,
                         errorMsg: ''
                     };
-                    } else {
+                } else {
                     aiResultMetrics.isRealAi = false;
                     aiResultMetrics.errorMsg = json.error_msg || json.error || 'No face detected';
-                }
-
-
-                        
-                    };
                 }
             } catch (err) {
                 console.warn('Fallback to smart local estimation:', err);
@@ -537,6 +532,7 @@
                 else document.getElementById('modal-email').style.display = 'flex';
             }, 1500);
         }
+
   
        
         function sendReportEmail(targetEmail, prodName, adviceText) {
