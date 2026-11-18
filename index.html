@@ -419,8 +419,9 @@
             } catch(e) {}
         }
 
-              let aiResultMetrics = { score: 74, red: 65, blue: 55, green: 42, primaryConcern: 'Redness' };
-        let currentBase64Image = '';
+               let aiResultMetrics = { score: 74, red: 65, blue: 55, green: 42, primaryConcern: 'Redness', isRealAi: false, errorMsg: '' };
+
+                let currentBase64Image = '';
 
         function triggerDirectCamera() {
             if (!checkScanLimit()) return;
@@ -527,11 +528,7 @@
             }, 1500);
         }
   
-
-
-
-
-        
+       
         function sendReportEmail(targetEmail, prodName, adviceText) {
             if (!targetEmail || typeof emailjs === 'undefined') return;
             const templateParams = {
@@ -566,20 +563,36 @@
         function openEmailModalLater() {
             document.getElementById('modal-email').style.display = 'flex';
         }
-
-
         
         function renderReport() {
-            document.getElementById('report-target-badge').innerText = `${selectedTarget} • Glass Skin Potential`;
-            let prodName = "SKIN1004 센텔라 앰플 (100ml)";
-            let advice = `"현재 피부 장벽이 약해져 외부 자극으로 인한 홍조 지수가 높습니다. 진정 효과가 뛰어난 병풀(Centella) 단일 성분 집중 케어를 권장합니다."`;
-            
-            if (selectedTone >= 5) {
-                prodName = "SKIN1004 히알루-시카 워터핏 선세럼 (백탁 제로)";
-                advice = `"어두운 피부 톤 특유의 수분 손실과 색소 침착(PIH) 방지를 위해, 백탁 현상이 전혀 없는 수분 진정 케어를 권장합니다."`;
-            } else if (selectedGender === 'Male') {
-                advice = `"남성 피부 특유의 과다 피지와 면도 후 자극 진정을 위해, 끈적임 없는 병풀(Centella) 수분 진정 루틴을 권장합니다."`;
+            document.getElementById('report-target-badge').innerText = '${selectedTarget} • K-Beauty Skin Match';
+
+            // 1. 실제 AI 분석 점수와 수치(홍조·수분·모공)를 화면에 반영
+            const scoreBadge = document.querySelector('.score-badge');
+            if (scoreBadge) {
+                scoreBadge.innerHTML = `${aiResultMetrics.score}<span class="score-sub">Skin Score</span>`;
             }
+            document.getElementById('val-red').innerText = `${aiResultMetrics.red}%`;
+            document.getElementById('val-blue').innerText = `${aiResultMetrics.blue}%`;
+            document.getElementById('val-green').innerText = `${aiResultMetrics.green}%`;
+
+            // 2. AI 분석 결과에 따른 맞춤 K-뷰티 제품 및 소견 자동 생성
+            let prodName = "SKIN1004 Madagascar Centella Ampoule (100ml)";
+            let advice = `"Detected elevated redness & sensitivity (${aiResultMetrics.red}%). Pure Centella Asiatica extract is recommended to calm inflammation and strengthen your skin barrier."`;
+
+            if (aiResultMetrics.primaryConcern === 'Hydration' || selectedTone >= 5) {
+                prodName = "Beauty of Joseon Relief Sun & Hyaluronic Serum";
+                advice = `"Detected moisture barrier deficit (${aiResultMetrics.blue}%). Deep hydration with zero white cast is recommended for a balanced, healthy glow."`;
+            } else if (aiResultMetrics.primaryConcern === 'Pores' || selectedGender === 'Male') {
+                prodName = "Anua Heartleaf 77% Soothing & Pore Control Toner";
+                advice = `"Detected visible pore congestion (${aiResultMetrics.green}%). Gentle Heartleaf extract is recommended to balance sebum without stripping moisture."`;
+            }
+
+            // 3. 실제 AILabTools 서버 연결 성공 여부를 AI 소견 박스 상단에 표시
+            const aiStatusTag = aiResultMetrics.isRealAi
+                ? `<div style="font-size:11px; color:#059669; font-weight:700; margin-bottom:6px;">⚡ Live AILabTools Engine Connected</div>`
+                : `<div style="font-size:11px; color:#dc2626; font-weight:700; margin-bottom:6px;">⚠️ Fallback Mode (${aiResultMetrics.errorMsg || 'Connecting...'})</div>`;
+            document.querySelector('.ai-advice').innerHTML = aiStatusTag + advice;
 
             document.getElementById('main-product-name').innerText = prodName;
             document.getElementById('ai-advice-text').innerHTML = `<strong>🤖 Skintic AI Advisor:</strong><br>${advice}`;
@@ -623,7 +636,7 @@
             ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 600, 400);
             ctx.fillStyle = '#4f46e5'; ctx.fillRect(0, 0, 600, 70);
             ctx.fillStyle = '#ffffff'; ctx.font = 'bold 28px sans-serif'; ctx.fillText('Skintic AI Skin Prescription', 24, 45);
-            ctx.fillStyle = '#0f172a'; ctx.font = 'bold 22px sans-serif'; ctx.fillText(`Target: ${selectedTarget} | Skin Score: 68/100`, 24, 120);
+            ctx.fillStyle = '#0f172a'; ctx.font = 'bold 22px sans-serif'; ctx.fillText(`Target: ${selectedTarget} | Skin Score: ${aiResultMetrics.score}/100`, 24, 120);
             ctx.font = '18px sans-serif'; ctx.fillText(`Recommended: ${document.getElementById('main-product-name').innerText}`, 24, 170);
             ctx.fillStyle = '#64748b'; ctx.font = '16px sans-serif'; ctx.fillText(`Date: ${new Date().toLocaleDateString('en-US')}`, 24, 220);
             ctx.fillStyle = '#ec4899'; ctx.font = 'bold 20px sans-serif'; ctx.fillText('Reorder anytime at: https://skinmatch.kr', 24, 350);
