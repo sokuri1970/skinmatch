@@ -460,26 +460,11 @@
         }
             
         function captureLivePhoto() {
-            const videoEl = document.getElementById('live-video');
-            
-            // 1. 찰칵 효과음 & 스마트폰 진동 피드백
-            try {
-                if (navigator.vibrate) navigator.vibrate(80);
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.09);
+           try {
+                if (navigator.vibrate) navigator.vibrate(60);
             } catch(e) {}
 
-            // 2. 촬영 이미지 캡처
+            const videoEl = document.getElementById('live-video');
             const canvas = document.createElement('canvas');
             canvas.width = 360;
             canvas.height = 480;
@@ -496,7 +481,15 @@
             runRealAiAnalysis(currentBase64Image);
         }
 
+        function closeLiveCamera() {
+            if (activeVideoStream) {
+                activeVideoStream.getTracks().forEach(track => track.stop());
+                activeVideoStream = null;
+            }
+            document.getElementById('modal-camera').style.display = 'none';
+        }
 
+        
         function triggerGallery() {
             if (!checkScanLimit()) return;
             const input = document.getElementById('camera-input');
